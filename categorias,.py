@@ -1,31 +1,47 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import mysql.connector
 
-# Lista para guardar registros en memoria
-categorias = []
-contador_id = 1
+# Conexión a la base de datos
+conexion = mysql.connector.connect(
+    host="localhost",
+    user="root",          # ← Cambia esto si tu usuario no es "root"
+    password="david1234",          # ← Pon tu contraseña aquí si tienes una
+    database="waldos"
+)
+cursor = conexion.cursor()
+
+# Crear tabla si no existe
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+)
+""")
+conexion.commit()
 
 # Funciones CRUD
 def guardar():
-    global contador_id
     if nombre.get():
-        categorias.append({"id": contador_id, "nombre": nombre.get()})
-        contador_id += 1
+        sql = "INSERT INTO categorias (nombre) VALUES (%s)"
+        cursor.execute(sql, (nombre.get(),))
+        conexion.commit()
         mostrar(); limpiar()
     else:
         messagebox.showwarning("Atención", "Debes escribir un nombre.")
 
 def eliminar():
-    global categorias
     if id_categoria.get():
-        categorias = [c for c in categorias if str(c["id"]) != id_categoria.get()]
+        sql = "DELETE FROM categorias WHERE id = %s"
+        cursor.execute(sql, (id_categoria.get(),))
+        conexion.commit()
         mostrar(); limpiar()
 
 def actualizar():
     if id_categoria.get() and nombre.get():
-        for c in categorias:
-            if c["id"] == int(id_categoria.get()):
-                c["nombre"] = nombre.get()
+        sql = "UPDATE categorias SET nombre = %s WHERE id = %s"
+        cursor.execute(sql, (nombre.get(), id_categoria.get()))
+        conexion.commit()
         mostrar(); limpiar()
 
 def limpiar():
@@ -34,8 +50,9 @@ def limpiar():
 
 def mostrar():
     for i in tabla.get_children(): tabla.delete(i)
-    for c in categorias:
-        tabla.insert("", "end", values=(c["id"], c["nombre"]))
+    cursor.execute("SELECT id_categoria, nombre FROM categorias")
+    for fila in cursor.fetchall():
+        tabla.insert("", "end", values=fila)
 
 def seleccionar(e):
     sel = tabla.focus()
