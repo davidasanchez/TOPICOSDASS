@@ -1,35 +1,60 @@
+import mysql.connector
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-# Lista para guardar registros en memoria
+# Conexión a la base de datos
+def conectar():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="david1234",
+        database="waldos"
+    )
+
+# Lista para guardar registros en memoria (opcional si prefieres obtener directamente desde la base de datos)
 clientes = []
-contador_id = 1
 
 # Funciones CRUD
 def guardar():
-    global contador_id
+    conexion = conectar()
+    cursor = conexion.cursor()
     if nombre.get() and direccion.get() and telefono.get() and email.get():
-        clientes.append({"id": contador_id, "nombre": nombre.get(), "direccion": direccion.get(), "telefono": telefono.get(), "email": email.get()})
-        contador_id += 1
-        mostrar(); limpiar()
+        cursor.execute(
+            "INSERT INTO clientes (nombre, direccion, telefono, email) VALUES (%s, %s, %s, %s)",
+            (nombre.get(), direccion.get(), telefono.get(), email.get())
+        )
+        conexion.commit()
+        mostrar()  # Actualiza la tabla
+        limpiar()
     else:
         messagebox.showwarning("Atención", "Todos los campos son requeridos.")
+    cursor.close()
+    conexion.close()
 
 def eliminar():
-    global clientes
+    conexion = conectar()
+    cursor = conexion.cursor()
     if id_cliente.get():
-        clientes = [c for c in clientes if str(c["id"]) != id_cliente.get()]
-        mostrar(); limpiar()
+        cursor.execute("DELETE FROM clientes WHERE id_cliente = %s", (id_cliente.get(),))
+        conexion.commit()
+        mostrar()  # Actualiza la tabla
+        limpiar()
+    cursor.close()
+    conexion.close()
 
 def actualizar():
+    conexion = conectar()
+    cursor = conexion.cursor()
     if id_cliente.get() and nombre.get() and direccion.get() and telefono.get() and email.get():
-        for c in clientes:
-            if c["id"] == int(id_cliente.get()):
-                c["nombre"] = nombre.get()
-                c["direccion"] = direccion.get()
-                c["telefono"] = telefono.get()
-                c["email"] = email.get()
-        mostrar(); limpiar()
+        cursor.execute(
+            "UPDATE clientes SET nombre = %s, direccion = %s, telefono = %s, email = %s WHERE id_cliente = %s",
+            (nombre.get(), direccion.get(), telefono.get(), email.get(), id_cliente.get())
+        )
+        conexion.commit()
+        mostrar()  # Actualiza la tabla
+        limpiar()
+    cursor.close()
+    conexion.close()
 
 def limpiar():
     id_cliente.set("")
@@ -39,9 +64,16 @@ def limpiar():
     email.set("")
 
 def mostrar():
-    for i in tabla.get_children(): tabla.delete(i)
-    for c in clientes:
-        tabla.insert("", "end", values=(c["id"], c["nombre"], c["direccion"], c["telefono"], c["email"]))
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT id_cliente, nombre, direccion, telefono, email FROM clientes")
+    registros = cursor.fetchall()
+    for i in tabla.get_children():
+        tabla.delete(i)
+    for c in registros:
+        tabla.insert("", "end", values=(c[0], c[1], c[2], c[3], c[4]))
+    cursor.close()
+    conexion.close()
 
 def seleccionar(e):
     sel = tabla.focus()
@@ -80,7 +112,8 @@ email = tk.StringVar()
 tk.Entry(root, textvariable=email, bg="#ccffff").pack()
 
 # Botones
-f = tk.Frame(root); f.pack(pady=12)
+f = tk.Frame(root)
+f.pack(pady=12)
 botones = [
     ("Guardar", guardar, "#b3ffb3"),
     ("Eliminar", eliminar, "#ffb3b3"),
