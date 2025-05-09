@@ -1,34 +1,40 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import mysql.connector
 
-# Lista para guardar registros en memoria
-proveedores = []
-contador_id = 1
+# Conexión a la base de datos
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="david1234",
+    database="waldos"
+)
+cursor = conn.cursor()
 
-# Funciones CRUD
+# Funciones CRUD conectadas a MySQL
 def guardar():
-    global contador_id
     if nombre.get() and direccion.get() and telefono.get() and email.get():
-        proveedores.append({"id": contador_id, "nombre": nombre.get(), "direccion": direccion.get(), "telefono": telefono.get(), "email": email.get()})
-        contador_id += 1
+        sql = "INSERT INTO proveedores (nombre, direccion, telefono, email) VALUES (%s, %s, %s, %s)"
+        datos = (nombre.get(), direccion.get(), telefono.get(), email.get())
+        cursor.execute(sql, datos)
+        conn.commit()
         mostrar(); limpiar()
     else:
         messagebox.showwarning("Atención", "Todos los campos son requeridos.")
 
 def eliminar():
-    global proveedores
     if id_proveedor.get():
-        proveedores = [p for p in proveedores if str(p["id"]) != id_proveedor.get()]
+        sql = "DELETE FROM proveedores WHERE id_proveedor = %s"
+        cursor.execute(sql, (id_proveedor.get(),))
+        conn.commit()
         mostrar(); limpiar()
 
 def actualizar():
     if id_proveedor.get() and nombre.get() and direccion.get() and telefono.get() and email.get():
-        for p in proveedores:
-            if p["id"] == int(id_proveedor.get()):
-                p["nombre"] = nombre.get()
-                p["direccion"] = direccion.get()
-                p["telefono"] = telefono.get()
-                p["email"] = email.get()
+        sql = "UPDATE proveedores SET nombre = %s, direccion = %s, telefono = %s, email = %s WHERE id_proveedor = %s"
+        datos = (nombre.get(), direccion.get(), telefono.get(), email.get(), id_proveedor.get())
+        cursor.execute(sql, datos)
+        conn.commit()
         mostrar(); limpiar()
 
 def limpiar():
@@ -40,8 +46,9 @@ def limpiar():
 
 def mostrar():
     for i in tabla.get_children(): tabla.delete(i)
-    for p in proveedores:
-        tabla.insert("", "end", values=(p["id"], p["nombre"], p["direccion"], p["telefono"], p["email"]))
+    cursor.execute("SELECT * FROM proveedores")
+    for fila in cursor.fetchall():
+        tabla.insert("", "end", values=fila)
 
 def seleccionar(e):
     sel = tabla.focus()
@@ -55,7 +62,7 @@ def seleccionar(e):
 
 # Interfaz
 root = tk.Tk()
-root.title("CRUD Proveedores")
+root.title("CRUD Proveedores (con MySQL)")
 root.geometry("600x450")
 
 # Campos de entrada
@@ -92,11 +99,8 @@ for i, (texto, comando, color) in enumerate(botones):
 
 # Tabla
 tabla = ttk.Treeview(root, columns=("ID", "Nombre", "Dirección", "Teléfono", "Email"), show="headings")
-tabla.heading("ID", text="ID")
-tabla.heading("Nombre", text="Nombre")
-tabla.heading("Dirección", text="Dirección")
-tabla.heading("Teléfono", text="Teléfono")
-tabla.heading("Email", text="Email")
+for col in ("ID", "Nombre", "Dirección", "Teléfono", "Email"):
+    tabla.heading(col, text=col)
 tabla.bind("<ButtonRelease-1>", seleccionar)
 tabla.pack(fill="both", expand=True, pady=5)
 
