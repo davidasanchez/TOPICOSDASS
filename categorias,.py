@@ -6,19 +6,10 @@ import mysql.connector
 conexion = mysql.connector.connect(
     host="localhost",
     user="root",          # ← Cambia esto si tu usuario no es "root"
-    password="david1234",          # ← Pon tu contraseña aquí si tienes una
+    password="david1234", # ← Pon tu contraseña aquí si tienes una
     database="waldos"
 )
 cursor = conexion.cursor()
-
-# Crear tabla si no existe
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS categorias (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL
-)
-""")
-conexion.commit()
 
 # Funciones CRUD
 def guardar():
@@ -50,7 +41,7 @@ def limpiar():
 
 def mostrar():
     for i in tabla.get_children(): tabla.delete(i)
-    cursor.execute("SELECT id_categoria, nombre FROM categorias")
+    cursor.execute("SELECT id_categoria, nombre FROM categorias")  # Cambié 'id' por 'id_categoria'
     for fila in cursor.fetchall():
         tabla.insert("", "end", values=fila)
 
