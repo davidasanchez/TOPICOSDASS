@@ -1,31 +1,35 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import mysql.connector
 
-# Lista para guardar registros en memoria
-unidades = []
-contador_id = 1
+# Conexión a la base de datos MySQL
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="david1234",
+    database="waldos"
+)
+cursor = conn.cursor()
 
 # Funciones CRUD
 def guardar():
-    global contador_id
     if nombre.get():
-        unidades.append({"id": contador_id, "nombre": nombre.get()})
-        contador_id += 1
+        cursor.execute("INSERT INTO unidades (nombre) VALUES (%s)", (nombre.get(),))
+        conn.commit()
         mostrar(); limpiar()
     else:
         messagebox.showwarning("Atención", "Debes escribir un nombre.")
 
 def eliminar():
-    global unidades
     if id_unidad.get():
-        unidades = [u for u in unidades if str(u["id"]) != id_unidad.get()]
+        cursor.execute("DELETE FROM unidades WHERE id = %s", (id_unidad.get(),))
+        conn.commit()
         mostrar(); limpiar()
 
 def actualizar():
     if id_unidad.get() and nombre.get():
-        for u in unidades:
-            if u["id"] == int(id_unidad.get()):
-                u["nombre"] = nombre.get()
+        cursor.execute("UPDATE unidades SET nombre = %s WHERE id = %s", (nombre.get(), id_unidad.get()))
+        conn.commit()
         mostrar(); limpiar()
 
 def limpiar():
@@ -34,8 +38,9 @@ def limpiar():
 
 def mostrar():
     for i in tabla.get_children(): tabla.delete(i)
-    for u in unidades:
-        tabla.insert("", "end", values=(u["id"], u["nombre"]))
+    cursor.execute("SELECT * FROM unidades")
+    for fila in cursor.fetchall():
+        tabla.insert("", "end", values=fila)
 
 def seleccionar(e):
     sel = tabla.focus()
@@ -46,7 +51,7 @@ def seleccionar(e):
 
 # Interfaz
 root = tk.Tk()
-root.title("CRUD Unidades")
+root.title("CRUD Unidades (MySQL)")
 root.geometry("430x330")
 
 tk.Label(root, text="ID (no editable):").pack()
