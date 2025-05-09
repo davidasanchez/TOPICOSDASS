@@ -1,42 +1,65 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+import mysql.connector
 
-# Lista para guardar registros en memoria
-empleados = []
-contador_id = 1
+# Función de conexión a MySQL
+def conectar():
+    return mysql.connector.connect(
+        host="localhost",  # Cambia por el nombre de tu host
+        user="root",       # Tu usuario de MySQL
+        password="david1234",       # Tu contraseña de MySQL
+        database="waldos" # Cambia por el nombre de tu base de datos
+    )
 
 # Funciones CRUD
 def guardar():
-    global contador_id
     if nombre.get() and cargo.get() and salario.get():
         try:
             salario_val = float(salario.get())
-            empleados.append({"id": contador_id, "nombre": nombre.get(), "cargo": cargo.get(), "salario": salario_val})
-            contador_id += 1
-            mostrar(); limpiar()
+            conexion = conectar()
+            cursor = conexion.cursor()
+            cursor.execute("INSERT INTO empleados (nombre, cargo, salario) VALUES (%s, %s, %s)", 
+                           (nombre.get(), cargo.get(), salario_val))
+            conexion.commit()
+            conexion.close()
+            mostrar()
+            limpiar()
         except ValueError:
             messagebox.showwarning("Atención", "El salario debe ser un número.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al guardar: {e}")
     else:
         messagebox.showwarning("Atención", "Todos los campos son requeridos.")
 
 def eliminar():
-    global empleados
     if id_empleado.get():
-        empleados = [e for e in empleados if str(e["id"]) != id_empleado.get()]
-        mostrar(); limpiar()
+        try:
+            conexion = conectar()
+            cursor = conexion.cursor()
+            cursor.execute("DELETE FROM empleados WHERE id = %s", (id_empleado.get(),))
+            conexion.commit()
+            conexion.close()
+            mostrar()
+            limpiar()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al eliminar: {e}")
 
 def actualizar():
     if id_empleado.get() and nombre.get() and cargo.get() and salario.get():
         try:
             salario_val = float(salario.get())
-            for e in empleados:
-                if e["id"] == int(id_empleado.get()):
-                    e["nombre"] = nombre.get()
-                    e["cargo"] = cargo.get()
-                    e["salario"] = salario_val
-            mostrar(); limpiar()
+            conexion = conectar()
+            cursor = conexion.cursor()
+            cursor.execute("UPDATE empleados SET nombre = %s, cargo = %s, salario = %s WHERE id = %s",
+                           (nombre.get(), cargo.get(), salario_val, id_empleado.get()))
+            conexion.commit()
+            conexion.close()
+            mostrar()
+            limpiar()
         except ValueError:
             messagebox.showwarning("Atención", "El salario debe ser un número.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al actualizar: {e}")
     else:
         messagebox.showwarning("Atención", "Todos los campos son requeridos.")
 
@@ -48,8 +71,16 @@ def limpiar():
 
 def mostrar():
     for i in tabla.get_children(): tabla.delete(i)
-    for e in empleados:
-        tabla.insert("", "end", values=(e["id"], e["nombre"], e["cargo"], e["salario"]))
+    try:
+        conexion = conectar()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM empleados")
+        empleados = cursor.fetchall()
+        for e in empleados:
+            tabla.insert("", "end", values=(e[0], e[1], e[2], e[3]))
+        conexion.close()
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al cargar los datos: {e}")
 
 def seleccionar(e):
     sel = tabla.focus()
